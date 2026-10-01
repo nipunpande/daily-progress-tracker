@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bhakti Sastri Study Tracker</title>
+    <title>Bhakti Sastri Dashboard</title>
     <style>
         :root {
             --primary: #d97706;
@@ -23,7 +23,7 @@
             justify-content: center;
         }
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             width: 100%;
             background: var(--card-bg);
             padding: 25px;
@@ -36,17 +36,45 @@
             color: var(--primary);
             margin-top: 0;
         }
-        .progress-container {
+        .view-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .view-btn {
+            background: #fdf2e9;
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        .view-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .dashboard-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
             background: #fdf2e9;
             border-radius: 8px;
-            padding: 15px;
+            padding: 20px;
             margin-bottom: 25px;
             border: 1px solid var(--border);
+            align-items: center;
+        }
+        @media (max-width: 750px) { 
+            .dashboard-header { grid-template-columns: 1fr; } 
         }
         .progress-bar-bg {
             background: #e5e7eb;
             border-radius: 4px;
-            height: 12px;
+            height: 14px;
             overflow: hidden;
             margin-top: 8px;
         }
@@ -56,6 +84,30 @@
             height: 100%;
             transition: width 0.3s ease;
         }
+        .chart-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .pie-chart {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: conic-gradient(#e5e7eb 0% 100%);
+            transition: background 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 0.8em;
+            width: 100%;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
         .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -121,21 +173,41 @@
 <body>
 
 <div class="container">
-    <h1>📖 Bhakti Sastri Offline Tracker</h1>
+    <h1>📖 Bhakti Sastri Study Tracker</h1>
     
-    <div class="progress-container">
-        <label>Weekly Study Target: <span id="target-status">0 / 10 Hours</span></label>
-        <div class="progress-bar-bg">
-            <div id="progress-bar" class="progress-bar"></div>
+    <div class="view-selector">
+        <button class="view-btn active" onclick="changeTimeHorizon('daily', event)">Daily View</button>
+        <button class="view-btn" onclick="changeTimeHorizon('weekly', event)">Weekly View</button>
+        <button class="view-btn" onclick="changeTimeHorizon('monthly', event)">Monthly View</button>
+    </div>
+
+    <div class="dashboard-header">
+        <div>
+            <h2 id="horizon-title">Daily Goal Tracker</h2>
+            <label><span id="horizon-label">Today's Progress:</span> <span id="target-status">0 / 5 Hours</span></label>
+            <div class="progress-bar-bg">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            <p style="font-size:0.85em; margin-top:10px; color:var(--text);">Targets auto-scale: 5hrs Daily, 35hrs Weekly, 150hrs Monthly.</p>
+        </div>
+        <div class="chart-box">
+            <div id="pie-chart" class="pie-chart"></div>
+            <div class="chart-legend">
+                <div class="legend-item"><span class="dot" style="background:#ef4444"></span> BG</div>
+                <div class="legend-item"><span class="dot" style="background:#3b82f6"></span> SB</div>
+                <div class="legend-item"><span class="dot" style="background:#10b981"></span> NOI</div>
+                <div class="legend-item"><span class="dot" style="background:#f59e0b"></span> NOD</div>
+                <div class="legend-item"><span class="dot" style="background:#8b5cf6"></span> ISO</div>
+                <div class="legend-item"><span class="dot" style="background:#ec4899"></span> Other</div>
+            </div>
         </div>
     </div>
 
     <div class="grid">
-        <!-- Panel 1: Main Books -->
         <div class="card">
             <h2>Scripture Log</h2>
             <label>Date</label>
-            <input type="date" id="study-date">
+            <input type="date" id="study-date" onchange="syncDates(this.value)">
             
             <label>Select Book</label>
             <select id="book-select">
@@ -149,8 +221,8 @@
             <label>Chapters / Verses Covered</label>
             <input type="text" id="book-chapters" placeholder="e.g. Ch 4, Verses 1-5">
             
-            <label>Study Duration</label>
-            <input type="text" id="book-duration" placeholder="e.g. 1.5 hours">
+            <label>Study Duration (Hours or Mins)</label>
+            <input type="text" id="book-duration" placeholder="e.g. 1.5 hours or 45 mins">
             
             <label>Remarks & Notes</label>
             <textarea id="book-remarks" rows="2" placeholder="Insights..."></textarea>
@@ -158,11 +230,10 @@
             <button onclick="addEntry('Scripture')">Save Scripture Progress</button>
         </div>
 
-        <!-- Panel 2: Independent Topics -->
         <div class="card">
             <h2>Songs & Revisions</h2>
             <label>Date</label>
-            <input type="date" id="other-date">
+            <input type="date" id="other-date" onchange="syncDates(this.value)">
 
             <div style="border-bottom: 1px solid var(--border); margin-bottom: 15px; padding-bottom: 10px;">
                 <label style="color: var(--primary);">🎵 Vaisnava Acarya Songs</label>
@@ -212,6 +283,7 @@
     document.getElementById('study-date').value = formattedDateString;
     document.getElementById('other-date').value = formattedDateString;
 
+    let currentHorizon = 'daily'; 
     let logs = [];
     try {
         logs = JSON.parse(localStorage.getItem('bhakti_sastri_offline_logs')) || [];
@@ -219,12 +291,69 @@
         logs = [];
     }
 
+    function syncDates(val) {
+        document.getElementById('study-date').value = val;
+        document.getElementById('other-date').value = val;
+        updateUI();
+    }
+
+    function changeTimeHorizon(horizon, event) {
+        currentHorizon = horizon;
+        const btns = document.querySelectorAll('.view-btn');
+        btns.forEach(btn => btn.classList.remove('active'));
+        if (event) {
+            event.target.classList.add('active');
+        }
+        
+        if (horizon === 'daily') {
+            document.getElementById('horizon-title').innerText = "Daily Goal Tracker";
+            document.getElementById('horizon-label').innerText = "Today's Progress:";
+        } else if (horizon === 'weekly') {
+            document.getElementById('horizon-title').innerText = "Weekly Aggregated Progress";
+            document.getElementById('horizon-label').innerText = "This Week's Total:";
+        } else if (horizon === 'monthly') {
+            document.getElementById('horizon-title').innerText = "Monthly Aggregated Progress";
+            document.getElementById('horizon-label').innerText = "This Month's Total:";
+        }
+        updateUI();
+    }
+
+    function parseToMinutes(timeStr) {
+        const str = timeStr.toLowerCase();
+        const val = parseFloat(str) || 0;
+        if(str.includes('min') || str.includes('m')) {
+            return val;
+        }
+        return val * 60; 
+    }
+
+    function isSameWeek(dateStr1, dateStr2) {
+        const d1 = new Date(dateStr1);
+        const d2 = new Date(dateStr2);
+        const oneDay = 24 * 60 * 60 * 1000;
+        const startOfWeek = dDate => new Date(dDate.getTime() - dDate.getDay() * oneDay);
+        return startOfWeek(d1).toDateString() === startOfWeek(d2).toDateString();
+    }
+
+    function isSameMonth(dateStr1, dateStr2) {
+        const d1 = new Date(dateStr1);
+        const d2 = new Date(dateStr2);
+        return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
+    }
+
     function updateUI() {
         localStorage.setItem('bhakti_sastri_offline_logs', JSON.stringify(logs));
         const tbody = document.getElementById('history-body');
         tbody.innerHTML = '';
         
-        let totalMinutes = 0;
+        const activeDate = document.getElementById('study-date').value;
+        
+        let accumulatedMins = 0;
+        let chartData = { bg: 0, sb: 0, noi: 0, nod: 0, iso: 0, other: 0 };
+        let targetHoursCeiling = 5;
+
+        if (currentHorizon === 'weekly') targetHoursCeiling = 35;
+        if (currentHorizon === 'monthly') targetHoursCeiling = 150;
 
         logs.forEach(log => {
             const row = document.createElement('tr');
@@ -237,19 +366,50 @@
             `;
             tbody.appendChild(row);
 
-            const timeStr = log.duration.toLowerCase();
-            const numericalVal = parseFloat(timeStr) || 0;
-            if(timeStr.includes('min') || timeStr.includes('m')) {
-                totalMinutes += numericalVal;
-            } else {
-                totalMinutes += numericalVal * 60; 
+            let isMatch = false;
+            if (currentHorizon === 'daily' && log.date === activeDate) isMatch = true;
+            else if (currentHorizon === 'weekly' && isSameWeek(log.date, activeDate)) isMatch = true;
+            else if (currentHorizon === 'monthly' && isSameMonth(log.date, activeDate)) isMatch = true;
+
+            if (isMatch) {
+                const mins = parseToMinutes(log.duration);
+                accumulatedMins += mins;
+
+                if (log.item === "Bhagavad Gita") chartData.bg += mins;
+                else if (log.item === "Srimad Bhagavatam Canto 1") chartData.sb += mins;
+                else if (log.item === "Nectar of Instruction") chartData.noi += mins;
+                else if (log.item === "Nectar of Devotion") chartData.nod += mins;
+                else if (log.item === "Isopanishad") chartData.iso += mins;
+                else chartData.other += mins;
             }
         });
 
-        const totalHours = (totalMinutes / 60).toFixed(1);
-        document.getElementById('target-status').innerText = `${totalHours} / 10 Hours`;
-        const percentage = Math.min((totalHours / 10) * 100, 100);
+        const totalHours = (accumulatedMins / 60).toFixed(1);
+        document.getElementById('target-status').innerText = `${totalHours} / ${targetHoursCeiling} Hours`;
+        const percentage = Math.min((totalHours / targetHoursCeiling) * 100, 100);
         document.getElementById('progress-bar').style.width = percentage + '%';
+
+        const totalChartMins = chartData.bg + chartData.sb + chartData.noi + chartData.nod + chartData.iso + chartData.other;
+        const chartElement = document.getElementById('pie-chart');
+        
+        if (totalChartMins === 0) {
+            chartElement.style.background = `conic-gradient(#e5e7eb 0% 100%)`;
+        } else {
+            const pBg = (chartData.bg / totalChartMins) * 100;
+            const pSb = (chartData.sb / totalChartMins) * 100 + pBg;
+            const pNoi = (chartData.noi / totalChartMins) * 100 + pSb;
+            const pNod = (chartData.nod / totalChartMins) * 100 + pNoi;
+            const pIso = (chartData.iso / totalChartMins) * 100 + pNod;
+            
+            chartElement.style.background = `conic-gradient(
+                #ef4444 0% ${pBg}%, 
+                #3b82f6 ${pBg}% ${pSb}%, 
+                #10b981 ${pSb}% ${pNoi}%, 
+                #f59e0b ${pNoi}% ${pNod}%, 
+                #8b5cf6 ${pNod}% ${pIso}%, 
+                #ec4899 ${pIso}% 100%
+            )`;
+        }
     }
 
     function addEntry(type) {
