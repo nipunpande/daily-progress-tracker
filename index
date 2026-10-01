@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scripture Study Dashboard</title>
+    <style>
+        :root {
+            --primary: #d97706;
+            --primary-hover: #b45309;
+            --bg: #fffbeb;
+            --card-bg: #ffffff;
+            --text: #78350f;
+            --border: #fcd34d;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+        }
+        h1, h2 {
+            text-align: center;
+            color: var(--primary);
+            margin-top: 0;
+        }
+        .view-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .view-btn {
+            background: #fdf2e9;
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        .view-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .dashboard-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            background: #fdf2e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border);
+            align-items: center;
+        }
+        @media (max-width: 750px) { 
+            .dashboard-header { grid-template-columns: 1fr; } 
+        }
+        .progress-bar-bg {
+            background: #e5e7eb;
+            border-radius: 4px;
+            height: 14px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-bar {
+            background: var(--primary);
+            width: 0%;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .chart-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .pie-chart {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: conic-gradient(#e5e7eb 0% 100%);
+            transition: background 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 0.8em;
+            width: 100%;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        @media (max-width: 650px) { .grid { grid-template-columns: 1fr; } }
+        .card {
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 8px;
+            background: #ffffff;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 0.9em;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: var(--primary-hover); }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn-download { background: #059669; }
+        .btn-download:hover { background: #047857; }
+        .btn-clear { background: #dc2626; }
+        .btn-clear:hover { background: #b91c1c; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        th { background: #f8fafc; }
+        
+        .status-msg { font-size: 0.85em; text-align: center; margin: 10px 0; font-weight: bold; }
+        .del-btn { background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em; width: auto; }
+        .del-btn:hover { background: #dc2626; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📖 Daily Study Tracker</h1>
+    
+    <div class="view-selector">
+        <button class="view-btn active" onclick="changeTimeHorizon('daily', event)">Daily View</button>
+        <button class="view-btn" onclick="changeTimeHorizon('weekly', event)">Weekly View</button>
+        <button class="view-btn" onclick="changeTimeHorizon('monthly', event)">Monthly View</button>
+    </div>
+
+    <div class="dashboard-header">
+        <div>
+            <h2 id="horizon-title">Daily Goal Tracker</h2>
+            <label><span id="horizon-label">Today's Progress:</span> <span id="target-status">0 / 5 Hours</span></label>
+            <div class="progress-bar-bg">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            <p style="font-size:0.85em; margin-top:10px; color:var(--text);">Targets auto-scale: 5hrs Daily, 35hrs Weekly, 150hrs Monthly.</p>
+        </div>
+        <div class="chart-box">
+            <div id="pie-chart" class="pie-chart"></div>
+            <div class="chart-legend">
+                <div class="legend-item"><span class="dot" style="background:#ef4444"></span> BG</div>
+                <div class="legend-item"><span class="dot" style="background:#3b82f6"></span> SB</div>
+                <div class="legend-item"><span class="dot" style="background:#10b981"></span> NOI</div>
+                <div class="legend-item"><span class="dot" style="background:#f59e0b"></span> NOD</div>
+                <div class="legend-item"><span class="dot" style="background:#8b5cf6"></span> ISO</div>
+                <div class="legend-item"><span class="dot" style="background:#ec4899"></span> Other</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>Scripture Log</h2>
+            <label>Date</label>
+            <input type="date" id="study-date" onchange="syncDates(this.value)">
+            
+            <label>Select Book</label>
+            <select id="book-select">
+                <option value="Bhagavad Gita">Bhagavad Gita</option>
+                <option value="Srimad Bhagavatam Canto 1">Srimad Bhagavatam Canto 1</option>
+                <option value="Nectar of Instruction">Nectar of Instruction</option>
+                <option value="Nectar of Devotion">Nectar of Devotion</option>
+                <option value="Isopanishad">Isopanishad</option>
+            </select>
+            
+            <label>Chapters / Verses Covered</label>
+            <input type="text" id="book-chapters" placeholder="e.g. Ch 4, Verses 1-5">
+            
+            <label>Study Duration (Hours or Mins)</label>
+            <input type="text" id="book-duration" placeholder="e.g. 1.5 hours or 45 mins">
+            
+            <label>Remarks & Notes</label>
+            <textarea id="book-remarks" rows="2" placeholder="Insights..."></textarea>
+            
+            <button onclick="addEntry('Scripture')">Save Scripture Progress</button>
+        </div>
+
+        <div class="card">
+            <h2>Songs & Revisions</h2>
+            <label>Date</label>
+            <input type="date" id="song-date" onchange="syncDates(this.value)">
+            
+            <label>Practice Type</label>
+            <input type="text" id="song-chapters" placeholder="e.g. Memorizing, Singing, Recitation">
+            
+            <label>Duration (Hours or Mins)</label>
+            <input type="text" id="song-duration" placeholder="e.g. 30 mins or 1 hour">
+            
+            <label>Remarks & Notes</label>
+            <textarea id="song-remarks" rows="2" placeholder="Lines learned..."></textarea>
+            
+            <button onclick="addEntry('Songs')">Save Song Progress</button>
+        </div>
+    </div>
+
+    <div id="db-status-banner" class="status-msg" style="color:#d97706;">Connecting to Cloud Database Engine...</div>
+
+    <h2>Saved Study Logs</h2>
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Subject/Book</th>
+                    <th>Detail/Scope</th>
+                    <th>Duration</th>
+                    <th>Remarks</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="log-table-body">
+                <tr><td colspan="7" style="text-align:center; color:#94a3b8;">Loading data rows from cloud...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="btn-group">
+        <button class="btn-download" onclick="downloadBackup()">Export data backup (.json)</button>
+        <button class="btn-clear" onclick="clearAllData()">Wipe Local Cache</button>
+    </div>
+</div>
+
+<script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+    // 📋 PASTE YOUR UNIQUE SUPABASE KEYS INSIDE THESE QUOTATION MARKS:
+    const SUPABASE_URL = 'https://bvbwhbtukgcfcxjdsoid.supabase.co'
+
+    const SUPABASE_ANON_KEY = 'sb_publishable_bq3RylnywmQeh5lbATCuqQ_Ly9qCdFW'
+
+    let client = null;
+    let records = [];
+    let horizonMode = 'daily';
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const isoStr = new Date().toISOString().split('T');
+        document.getElementById('study-date').value = isoStr;
+        document.getElementById('song-date').value = isoStr;
+        
+        try {
+            if (SUPABASE_URL.includes('your-project-id')) {
+                setBanner('Warning: Edit index.html lines 235-236 to enter your Supabase credentials.', '#dc2626');
+            } else {
+                client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                syncWithServer();
+            }
+        } catch(e) {
+            setBanner('Database connection error occurred.', '#dc2626');
+        }
+    });
+
+    window.syncDates = function(val) {
+        document.getElementById('study-date').value = val;
+        document.getElementById('song-date').value = val;
+    }
+
+    function setBanner(str, color) {
+        const bar = document.getElementById('db-status-banner');
+        if(bar) { bar.textContent = str; bar.style.color = color; }
+    }
+
+    function evalStringToHours(valStr) {
+        const text = valStr.toLowerCase().trim();
+        if(!text) return 0;
+        const val = parseFloat(text);
+        if(isNaN(val)) return 0;
+        if(text.includes('min')) return val / 60;
+        if(text.includes('hour') || text.includes('hr')) return val;
+        return val > 5 ? val / 60 : val;
+    }
+
+    async function syncWithServer() {
+        if(!client) return;
+        setBanner('Synchronizing data items...', '#d97706');
+        
+        const { data, error } = await client
+            .from('scripture_tracker_logs')
+            .select('*')
+            .order('date', { ascending: false });
+
+        if(error) {
+            setBanner(`Sync Error: ${error.message}. Did you run the SQL code and Disable RLS?`, '#dc2626');
+            return;
+        }
+
+        records = data || [];
+        setBanner('Cloud Connection Active: Synced.', '#059669');
+        drawLogsUI();
+        recalculateDashboardMetrics();
+    }
+
+    window.addEntry = async function(cat) {
+        if(!client) { alert('Define cloud project connection keys first.'); return; }
+        const pfx = cat === 'Scripture' ? 'book' : 'song';
+
+        const d = document.getElementById(`${pfx}-date`).value;
+        const s = cat === 'Scripture' ? document.getElementById('book-select').value : 'Songs & Revisions';
+        const dt = document.getElementById(`${pfx}-chapters`).value;
+        const dur = document.getElementById(`${pfx}-duration`).value;
+        const rem = document.getElementById(`${pfx}-remarks`).value;
+
+        if(!dur) { alert('Provide duration value metrics.'); return; }
+        const calculatedHours = evalStringToHours(dur);
+
+        setBanner('Pushing record metrics to cloud...', '#d97706');
+
+        const { error } = await client
+            .from('scripture_tracker_logs')
+            .insert([{
+                date: d,
+                category: cat,
+                subject: s,
+                details: dt,
+                hours: calculatedHours,
+                remarks: rem
+            }]);
+
+        if(error) {
+            setBanner(`Write Request Fault: ${error.message}`, '#dc2626');
+        } else {
+            document.getElementById(`${pfx}-chapters`).value = '';
+            document.getElementById(`${pfx}-duration`).value = '';
+            document.getElementById(`${pfx}-remarks`).value = '';
+            await syncWithServer();
+        }
+    }
+
+    window.deleteLogItem = async function(id) {
+        if(!confirm("Erase entry record from cloud permanently?")) return;
+        setBanner('Executing extraction...', '#d97706');
+
+        const { error } = await client
+            .from('scripture_tracker_logs')
+            .delete()
+            .eq('id', id);
+
+        if(error) {
+            setBanner(`Delete failed: ${error.message}`, '#dc2626');
+        } else {
+            await syncWithServer();
+        }
+    }
+
+    window.changeTimeHorizon = function(mode, ev) {
+        if(ev) ev.preventDefault();
+        horizonMode = mode;
+        
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        const activeBtn = ev ? ev.target : document.querySelector(`[onclick*="${mode}"]`);
+        if(activeBtn) activeBtn.classList.add('active');
+
+        recalculateDashboardMetrics();
+    }
+
+    function recalculateDashboardMetrics() {
+        const curDate = new Date();
+        const curDateStr = curDate.toISOString().split('T');
+        
+        let targetHours = 5;
+        let title = "Daily Goal Tracker";
+        let label = "Today's Progress:";
+
+        if (horizonMode === 'weekly') {
+            targetHours = 35; title = "Weekly Goal Tracker"; label = "This Week's Progress:";
+        } else if (horizonMode === 'monthly') {
+            targetHours = 150; title = "Monthly Goal Tracker"; label = "This Month's Progress:";
+        }
+
+        document.getElementById('horizon-title').textContent = title;
+        document.getElementById('horizon-label').textContent = label;
+
+        let totalHours = 0;
+        let distribution = {
+            "Bhagavad Gita": 0,
+            "Srimad Bhagavatam Canto 1": 0,
+            "Nectar of Instruction": 0,
+            "Nectar of Devotion": 0,
+            "Isopanishad": 0,
+            "Other": 0
+        };
+
+        const wkStart = new Date(curDate);
+        wkStart.setDate(curDate.getDate() - curDate.getDay());
+        wkStart.setHours(0,0,0,0);
+
+        records.forEach(row => {
+            const entryDate = new Date(row.date);
+            let active = false;
+
+            if (horizonMode === 'daily' && row.date === curDateStr) {
+                active = true;
+            } else if (horizonMode === 'weekly' && entryDate >= wkStart) {
+                active = true;
+            } else if (horizonMode === 'monthly' && entryDate.getMonth() === curDate.getMonth() && entryDate.getFullYear() === curDate.getFullYear()) {
+                active = true;
+            }
+
+            if (active) {
+                totalHours += row.hours;
+                const mapKey = row.category === 'Songs' ? 'Other' : row.subject;
+                if (distribution[mapKey] !== undefined) distribution[mapKey] += row.hours;
+            }
+        });
+
+        document.getElementById('target-status').textContent = `${totalHours.toFixed(1)} / ${targetHours} Hours`;
+        document.getElementById('progress-bar').style.width = `${Math.min((totalHours / targetHours) * 100, 100)}%`;
+
+        const bg = distribution["Bhagavad Gita"];
+        const sb = distribution["Srimad Bhagavatam Canto 1"];
+        const noi = distribution["Nectar of Instruction"];
+        const nod = distribution["Nectar of Devotion"];
+        const iso = distribution["Isopanishad"];
+        const oth = distribution["Other"];
+        const sum = bg + sb + noi + nod + iso + oth;
+
+        if (sum === 0) {
+            document.getElementById('pie-chart').style.background = `conic-gradient(#e5e7eb 0% 100%)`;
+        } else {
+            const p1 = (bg / sum) * 100; const p2 = (sb / sum) * 100; const p3 = (noi / sum) * 100;
+            const p4 = (nod / sum) * 100; const p5 = (iso / sum) * 100;
+
+            let s1 = p1; let s2 = s1 + p2; let s3 = s2 + p3; let s4 = s3 + p4; let s5 = s4 + p5;
+
+            document.getElementById('pie-chart').style.background = `conic-gradient(
+                #ef4444 0% ${s1}%,
+                #3b82f6 ${s1}% ${s2}%,
+                #10b981 ${s2}% ${s3}%,
+                #f59e0b ${s3}% ${s4}%,
+                #8b5cf6 ${s4}% ${s5}%,
+                #ec4899 ${s5}% 100%
+            )`;
+        }
+    }
+
+    function drawLogsUI() {
+        const body = document.getElementById('log-table-body');
+        body.innerHTML = '';
+
+        if (records.length === 0) {
+            body.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#94a3b8;">No records saved yet. Fill standard cards to log metrics.</td></tr>`;
+            return;
+        }
+
+        records.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${row.date}</strong></td>
+                <td>${row.category}</td>
+                <td>${row.subject}</td>
+                <td>${row.details || '—'}</td>
+                <td>${row.hours.toFixed(2)} hrs</td>
+                <td style="max-width:220px; word-wrap:break-word; font-size:0.9em;">${row.remarks || '—'}</td>
+                <td><button class="del-btn" onclick="deleteLogItem(${row.id})">Delete</button></td>
+            `;
+            body.appendChild(tr);
+        });
+    }
+
+    window.downloadBackup = function() {
+        if(records.length === 0) { alert('No online rows present to build local exports.'); return; }
+        const dataUri = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(records, null, 2));
+        const a = document.createElement('a');
+        a.setAttribute("href", dataUri);
+        a.setAttribute("download", "Cloud_Backup_Dataset.json");
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+
+    window.clearAllData = async function() {
+        if(!client) return;
+        if(confirm("DANGER: Wipe all records from the cloud database permanently? This cannot be undone.")) {
+            setBanner('Wiping cloud database...', '#dc2626');
+            const { error } = await client.from('scripture_tracker_logs').delete().neq('id', 0);
+            if(error) alert(`Error executing full wipe: ${error.message}`);
+            await syncWithServer();
+        }
+    }
+</script>
+</body>
+</html>
