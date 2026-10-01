@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bhakti Sastri Dashboard</title>
+    <title>Scripture Study Dashboard</title>
     <style>
         :root {
             --primary: #d97706;
@@ -173,7 +173,7 @@
 <body>
 
 <div class="container">
-    <h1>📖 Bhakti Sastri Study Tracker</h1>
+    <h1>📖 Daily Study Tracker</h1>
     
     <div class="view-selector">
         <button class="view-btn active" onclick="changeTimeHorizon('daily', event)">Daily View</button>
@@ -286,7 +286,7 @@
     let currentHorizon = 'daily'; 
     let logs = [];
     try {
-        logs = JSON.parse(localStorage.getItem('bhakti_sastri_offline_logs')) || [];
+        logs = JSON.parse(localStorage.getItem('scripture_study_offline_logs')) || [];
     } catch(e) {
         logs = [];
     }
@@ -342,7 +342,7 @@
     }
 
     function updateUI() {
-        localStorage.setItem('bhakti_sastri_offline_logs', JSON.stringify(logs));
+        localStorage.setItem('scripture_study_offline_logs', JSON.stringify(logs));
         const tbody = document.getElementById('history-body');
         tbody.innerHTML = '';
         
@@ -461,7 +461,7 @@
             alert("No logs logged yet to download.");
             return;
         }
-        let outputText = "BHAKTI SASTRI PROGRESS SHEET\n============================\n\n";
+        let outputText = "PROGRESS SHEET\n============================\n\n";
         logs.forEach(l => {
             outputText += `Date: ${l.date}\nItem: ${l.item}\nDetails: ${l.details}\nDuration: ${l.duration}\nRemarks: ${l.remarks}\n-------------------------\n`;
         });
@@ -469,7 +469,7 @@
         const blob = new Blob([outputText], { type: 'text/plain' });
         const downloadElement = document.createElement('a');
         downloadElement.href = URL.createObjectURL(blob);
-        downloadElement.download = 'Bhakti_Sastri_Report.txt';
+        downloadElement.download = 'Progress_Report.txt';
         downloadElement.click();
     }
 
